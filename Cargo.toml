@@ -10,3 +10,4 @@ mersenne_twister = "*"
 rand = "*"
 rayon = "*"
 indicatif = { version = "*", features = ["rayon"] }
+boyer-moore-magiclen = "*"
