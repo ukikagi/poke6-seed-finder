@@ -1,3 +1,4 @@
+use indicatif::ParallelProgressIterator;
 use mersenne_twister::MT19937;
 use rand::Rng;
 use rand::SeedableRng;
@@ -59,6 +60,7 @@ fn find_seeds(
 ) -> Vec<(Seed, Frame, Frame)> {
     (seed_min..=seed_max)
         .into_par_iter()
+        .progress_count((seed_max - seed_min + 1) as u64)
         .flat_map(|seed| find_frame_pair(seed, iv1, iv2, frame_range1, frame_range2))
         .collect()
 }
