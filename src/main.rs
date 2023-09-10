@@ -1,6 +1,7 @@
 use mersenne_twister::MT19937;
 use rand::Rng;
 use rand::SeedableRng;
+use rayon::prelude::*;
 
 //  Misc consumption 60 + 1 + EC + PID
 const PRE_ADVANCE_FRAME: usize = 63;
@@ -30,7 +31,7 @@ fn find_frame_pair(
     iv2: IV,
     frame_range1: (Frame, Frame), // right-inclusive
     frame_range2: (Frame, Frame), // right-inclusive
-) -> Option<(Frame, Frame)> {
+) -> Option<(Seed, Frame, Frame)> {
     let mut mt = MT19937::from_seed(seed);
     for _ in 0..PRE_ADVANCE_FRAME {
         mt.next_u32();
@@ -43,6 +44,7 @@ fn find_frame_pair(
     }
 
     Some((
+        seed,
         find_frame(&rand_pool, iv1, frame_range1)?,
         find_frame(&rand_pool, iv2, frame_range2)?,
     ))
@@ -55,25 +57,25 @@ fn find_seeds(
     frame_range2: (Frame, Frame),       // right-inclusive
     (seed_min, seed_max): (Seed, Seed), // right-inclusive
 ) -> Vec<(Seed, Frame, Frame)> {
-    let mut results: Vec<(Seed, Frame, Frame)> = Vec::new();
-    for seed in seed_min..=seed_max {
-        match find_frame_pair(seed, iv1, iv2, frame_range1, frame_range2) {
-            Some((frame1, frame2)) => results.push((seed, frame1, frame2)),
-            None => (),
-        }
-    }
-    results
+    (seed_min..=seed_max)
+        .into_par_iter()
+        .flat_map(|seed| find_frame_pair(seed, iv1, iv2, frame_range1, frame_range2))
+        .collect()
 }
 
 fn main() {
+    let now = std::time::Instant::now();
+
     let result = find_seeds(
         (3, 5, 26, 31, 6, 19),
         (22, 27, 22, 1, 7, 27),
         (600, 800),
         (1500, 1700),
-        (0x33924000, 0x33925000),
+        (0x33000000, 0x34000000),
     );
     for (seed, frame1, frame2) in result {
         println!("{:x} {} {}", seed, frame1, frame2);
     }
+
+    println!("{:?}", now.elapsed().as_secs())
 }
