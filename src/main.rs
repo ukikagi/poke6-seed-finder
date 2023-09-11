@@ -43,6 +43,9 @@ fn find_frame_pair(
     }
     let f2 = f2_min + bmb2.find_first_in(&rand_pool)?;
 
+    // TODO: Make it thread-safe and not conflict with indicatif
+    println!("Seed: {:x}, Frame1: {}, Frame2: {}", seed, f1, f2);
+
     Some((seed, f1, f2))
 }
 
@@ -58,7 +61,7 @@ fn find_seeds(
 
     (seed_min..=seed_max)
         .into_par_iter()
-        .progress_count((seed_max - seed_min + 1) as u64)
+        .progress_count((seed_max as u64) - (seed_min as u64) + 1)
         .flat_map(|seed| find_frame_pair(seed, &bmb1, &bmb2, frame_range1, frame_range2))
         .collect()
 }
@@ -73,9 +76,10 @@ fn main() {
         (1500, 1700),
         (0x33000000, 0x34000000),
     );
+    println!("Completed!");
+    println!("Elapsed: {:?}", now.elapsed());
+
     for (seed, frame1, frame2) in result {
         println!("Seed: {:x}, Frame1: {}, Frame2: {}", seed, frame1, frame2);
     }
-
-    println!("Elapsed: {:?}", now.elapsed())
 }
