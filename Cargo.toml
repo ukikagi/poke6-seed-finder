@@ -1,5 +1,5 @@
 [package]
-name = "gen6_mt_seed_finder"
+name = "poke6-seed-finder"
 version = "0.1.0"
 edition = "2021"
 

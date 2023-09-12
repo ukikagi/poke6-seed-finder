@@ -43,9 +43,6 @@ fn find_frame_pair(
     }
     let f2 = f2_min + bmb2.find_first_in(&rand_pool)?;
 
-    // TODO: Make it thread-safe and not conflict with indicatif
-    println!("Seed: {:x}, Frame1: {}, Frame2: {}", seed, f1, f2);
-
     Some((seed, f1, f2))
 }
 
@@ -74,7 +71,7 @@ fn main() {
         (22, 27, 22, 1, 7, 27),
         (600, 800),
         (1500, 1700),
-        (0x33000000, 0x34000000),
+        (0x00000000, 0xffffffff),
     );
     println!("Completed!");
     println!("Elapsed: {:?}", now.elapsed());
