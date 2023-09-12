@@ -139,15 +139,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mersenne_twister"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b85dbb2f68dfc026aac8f4c5196579896b10ee45e8b9a1a3b325fab3043d1cb0"
-dependencies = [
- "rand",
-]
-
-[[package]]
 name = "num_cpus"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -168,7 +159,6 @@ name = "poke6-seed-finder"
 version = "0.1.0"
 dependencies = [
  "indicatif",
- "mersenne_twister",
  "rand",
  "rayon",
 ]
