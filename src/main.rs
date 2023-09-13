@@ -4,6 +4,7 @@ mod multi_mt;
 use dialoguer::Input;
 use indicatif::{ParallelProgressIterator, ProgressBar, WeakProgressBar};
 use multi_mt::MultiMT19937;
+use multiversion::multiversion;
 use rayon::prelude::*;
 use std::{
     io,
@@ -42,6 +43,7 @@ fn find_frame(
     frame
 }
 
+#[multiversion(targets = "simd")]
 fn find_frame_pair(
     seed_hi16: u32,
     ivs1: u32,
