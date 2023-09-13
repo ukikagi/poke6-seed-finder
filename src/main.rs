@@ -13,6 +13,7 @@ use std::{
 
 //  Misc consumption 60 + 1 + EC + PID
 const PRE_ADVANCE_FRAME: u32 = 63;
+const W: u32 = 16;
 
 type IVs = (u32, u32, u32, u32, u32, u32);
 type Frame = u32;
@@ -45,7 +46,7 @@ fn find_frame(
 
 #[multiversion(targets = "simd")]
 fn find_frame_pair(
-    seed_hi16: u32,
+    seed_hi: u32,
     ivs1: u32,
     ivs2: u32,
     (f1_min, f1_max): (Frame, Frame), // right-closed
@@ -55,7 +56,7 @@ fn find_frame_pair(
     let mut results = Vec::new();
     let mut mt = MultiMT19937::default();
 
-    for s in (seed_hi16 << 16..(seed_hi16 + 1) << 16).step_by(8) {
+    for s in (seed_hi << W..(seed_hi + 1) << W).step_by(8) {
         let seed = Simd::from_array([s, s | 1, s | 2, s | 3, s | 4, s | 5, s | 6, s | 7]);
         mt.reseed(seed);
 
@@ -99,57 +100,45 @@ fn find_seeds(
     let iv1 = ivs_to_u32(ivs1);
     let iv2 = ivs_to_u32(ivs2);
 
-    let seed_hi16_l = seed_min >> 16;
-    let seed_hi16_r = (seed_max >> 16) + 1;
+    let seed_hi_l = seed_min >> W;
+    let seed_hi_r = (seed_max >> W) + 1;
 
-    let progress_bar = ProgressBar::new((seed_hi16_r - seed_hi16_l) as u64);
+    let progress_bar = ProgressBar::new((seed_hi_r - seed_hi_l) as u64);
     let wpb = progress_bar.downgrade();
 
-    (seed_hi16_l..seed_hi16_r)
+    (seed_hi_l..seed_hi_r)
         .into_par_iter()
         .progress_with(progress_bar)
-        .flat_map(|seed_hi16| {
-            find_frame_pair(seed_hi16, iv1, iv2, frame_range1, frame_range2, wpb.clone())
+        .flat_map(|seed_hi| {
+            find_frame_pair(seed_hi, iv1, iv2, frame_range1, frame_range2, wpb.clone())
         })
         .filter(|&(s, _, _)| seed_min <= s && s <= seed_max)
         .collect()
 }
 
-fn main() -> io::Result<()> {
-    let ivs1: Vec<u32> = Input::<String>::new()
-        .with_prompt("IVs of Pokemon1")
-        .with_initial_text(String::from("3 5 26 31 6 19"))
-        .interact_text()?
+fn input_vec(prompt: &str, init: &str, radix: u32) -> Vec<u32> {
+    Input::<String>::new()
+        .with_prompt(prompt)
+        .with_initial_text(init)
+        .interact_text()
+        .unwrap()
+        .trim()
         .split(" ")
-        .map(|x| x.parse().unwrap())
-        .collect();
+        .map(|x| u32::from_str_radix(x, radix).unwrap())
+        .collect()
+}
+
+fn main() -> io::Result<()> {
+    let ivs1 = input_vec("IVs of Wild1", "3 5 26 31 6 19", 10);
     assert!(ivs1.len() == 6 && ivs1.iter().all(|&iv| iv <= 31));
 
-    let frame1: Vec<u32> = Input::<String>::new()
-        .with_prompt("Frames of Pokemon1")
-        .with_initial_text(String::from("600 800"))
-        .interact_text()?
-        .split(" ")
-        .map(|x| x.parse().unwrap())
-        .collect();
+    let frame1 = input_vec("Frames of Wild1", "600 800", 10);
     assert!(frame1.len() == 2);
 
-    let ivs2: Vec<u32> = Input::<String>::new()
-        .with_prompt("IVs of Pokemon2")
-        .with_initial_text(String::from("22 27 22 1 7 27"))
-        .interact_text()?
-        .split(" ")
-        .map(|x| x.parse().unwrap())
-        .collect();
+    let ivs2 = input_vec("IVs of Wild2", "22 27 22 1 7 27", 10);
     assert!(ivs2.len() == 6 && ivs2.iter().all(|&iv| iv <= 31));
 
-    let frame2: Vec<u32> = Input::<String>::new()
-        .with_prompt("Frames of Pokemon2")
-        .with_initial_text(String::from("1500 1700"))
-        .interact_text()?
-        .split(" ")
-        .map(|x| x.parse().unwrap())
-        .collect();
+    let frame2 = input_vec("Frames of Wild1", "1500 1700", 10);
     assert!(frame2.len() == 2);
 
     assert!(
@@ -159,13 +148,8 @@ fn main() -> io::Result<()> {
             && frame2[1] < 10000
     );
 
-    let seed_range: Vec<u32> = Input::<String>::new()
-        .with_prompt("Seed range")
-        .with_initial_text(String::from("00000000 FFFFFFFF"))
-        .interact_text()?
-        .split(" ")
-        .map(|x| u32::from_str_radix(x, 16).unwrap())
-        .collect();
+    let seed_range = input_vec("Seed range", "00000000 FFFFFFFF", 16);
+    assert!(seed_range.len() == 2);
 
     println!();
     let now = std::time::Instant::now();
