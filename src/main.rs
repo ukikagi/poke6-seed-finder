@@ -28,7 +28,7 @@ fn ivs_to_u32(iv: IVs) -> u32 {
 fn find_frame(
     mt: &mut MultiMT19937,
     ivs: u32,
-    (f_min, f_max): (Frame, Frame), // right-exclusive
+    (f_min, f_max): (Frame, Frame), // right-closed
 ) -> u32x8 {
     let mut curr = (mt.next_iv() << Simd::splat(20))
         | (mt.next_iv() << Simd::splat(15))
