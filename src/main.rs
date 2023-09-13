@@ -1,10 +1,14 @@
 #![feature(portable_simd)]
 mod multi_mt;
 
+use dialoguer::Input;
 use indicatif::{ParallelProgressIterator, ProgressBar, WeakProgressBar};
 use multi_mt::MultiMT19937;
 use rayon::prelude::*;
-use std::simd::{u32x8, Simd, SimdPartialEq};
+use std::{
+    io,
+    simd::{u32x8, Simd, SimdPartialEq},
+};
 
 //  Misc consumption 60 + 1 + EC + PID
 const PRE_ADVANCE_FRAME: u32 = 63;
@@ -105,24 +109,89 @@ fn find_seeds(
         .flat_map(|seed_hi16| {
             find_frame_pair(seed_hi16, iv1, iv2, frame_range1, frame_range2, wpb.clone())
         })
-        .filter(|(s, _, _)| seed_min <= *s && *s <= seed_max)
+        .filter(|&(s, _, _)| seed_min <= s && s <= seed_max)
         .collect()
 }
 
-fn main() {
+fn main() -> io::Result<()> {
+    let ivs1: Vec<u32> = Input::<String>::new()
+        .with_prompt("IVs of Pokemon1")
+        .with_initial_text(String::from("3 5 26 31 6 19"))
+        .interact_text()?
+        .split(" ")
+        .map(|x| x.parse().unwrap())
+        .collect();
+    assert!(ivs1.len() == 6 && ivs1.iter().all(|&iv| iv <= 31));
+
+    let frame1: Vec<u32> = Input::<String>::new()
+        .with_prompt("Frames of Pokemon1")
+        .with_initial_text(String::from("600 800"))
+        .interact_text()?
+        .split(" ")
+        .map(|x| x.parse().unwrap())
+        .collect();
+    assert!(frame1.len() == 2);
+
+    let ivs2: Vec<u32> = Input::<String>::new()
+        .with_prompt("IVs of Pokemon2")
+        .with_initial_text(String::from("22 27 22 1 7 27"))
+        .interact_text()?
+        .split(" ")
+        .map(|x| x.parse().unwrap())
+        .collect();
+    assert!(ivs2.len() == 6 && ivs2.iter().all(|&iv| iv <= 31));
+
+    let frame2: Vec<u32> = Input::<String>::new()
+        .with_prompt("Frames of Pokemon2")
+        .with_initial_text(String::from("1500 1700"))
+        .interact_text()?
+        .split(" ")
+        .map(|x| x.parse().unwrap())
+        .collect();
+    assert!(frame2.len() == 2);
+
+    assert!(
+        frame1[0] < frame1[1]
+            && frame1[1] + 6 < frame2[0]
+            && frame2[0] < frame2[1]
+            && frame2[1] < 10000
+    );
+
+    let seed_range: Vec<u32> = Input::<String>::new()
+        .with_prompt("Seed range")
+        .with_initial_text(String::from("00000000 FFFFFFFF"))
+        .interact_text()?
+        .split(" ")
+        .map(|x| u32::from_str_radix(x, 16).unwrap())
+        .collect();
+
+    println!();
     let now = std::time::Instant::now();
 
     let result = find_seeds(
-        (0x00000000, 0xffffffff),
-        (3, 5, 26, 31, 6, 19),
-        (22, 27, 22, 1, 7, 27),
-        (600, 800),
-        (1500, 1700),
+        (seed_range[0], seed_range[1]),
+        (ivs1[0], ivs1[1], ivs1[2], ivs1[3], ivs1[4], ivs1[5]),
+        (ivs2[0], ivs2[1], ivs2[2], ivs2[3], ivs2[4], ivs2[5]),
+        (frame1[0], frame1[1]),
+        (frame2[0], frame2[1]),
     );
+
     println!("Done!");
     println!("Elapsed: {:?}", now.elapsed());
 
+    println!();
+    println!("Results:");
     for (seed, frame1, frame2) in result {
-        println!("Seed: {:08X}, Frame1: {}, Frame2: {}", seed, frame1, frame2);
+        println!(
+            "- Seed: {:08X}, Frame1: {}, Frame2: {}",
+            seed, frame1, frame2
+        );
     }
+    println!();
+
+    let _ = Input::<String>::new()
+        .with_prompt("Press Enter to quit")
+        .allow_empty(true)
+        .interact();
+    Ok(())
 }

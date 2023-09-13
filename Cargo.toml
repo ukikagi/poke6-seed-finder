@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 rayon = "*"
 indicatif = { version = "*", features = ["rayon"] }
+dialoguer = "*"
