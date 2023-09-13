@@ -17,14 +17,15 @@ const UNINITIALIZED: MultiMT19937 = MultiMT19937 {
     state: [Simd::from_array([0; 8]); N],
 };
 
+impl Default for MultiMT19937 {
+    #[inline]
+    fn default() -> MultiMT19937 {
+        UNINITIALIZED
+    }
+}
+
 impl MultiMT19937 {
     #[inline]
-    pub fn from_seed(seed: u32x8) -> MultiMT19937 {
-        let mut mt = UNINITIALIZED;
-        mt.reseed(seed);
-        mt
-    }
-
     pub fn reseed(&mut self, seed: u32x8) {
         self.idx = N;
         self.state[0] = seed;
@@ -47,17 +48,18 @@ impl MultiMT19937 {
     }
 
     #[inline]
-    pub fn next_u5x8(&mut self) -> u32x8 {
+    pub fn next_iv(&mut self) -> u32x8 {
         self.next_u32x8() >> Simd::splat(27)
     }
 
     #[inline]
-    pub fn discard(&mut self, n: usize) {
+    pub fn discard(&mut self, n: u32) {
         for _ in 0..n {
             self.next_u32x8();
         }
     }
 
+    #[inline]
     fn fill_next_state(&mut self) {
         for i in 0..N - M {
             let x = (self.state[i] & UPPER_MASK) | (self.state[i + 1] & LOWER_MASK);
@@ -84,13 +86,11 @@ fn temper(mut x: u32x8) -> u32x8 {
 
 #[test]
 fn test_compare_with_mt() {
-    let mut multi_mt: MultiMT19937 =
-        MultiMT19937::from_seed(Simd::from_array([0, 1, 2, 3, 4, 5, 6, 7]));
-    for _ in 0..1000 {
-        multi_mt.next_u32x8();
-    }
+    let mut mt = MultiMT19937::default();
+    mt.reseed(Simd::from_array([0, 1, 2, 3, 4, 5, 6, 7]));
+    mt.discard(1000);
     assert_eq!(
-        multi_mt.next_u32x8().to_array(),
+        mt.next_u32x8().to_array(),
         [
             1333075495, 375733240, 1144994631, 454162887, 3777932409, 3818223146, 3836374258,
             4142999817
