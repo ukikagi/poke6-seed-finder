@@ -1,7 +1,7 @@
 #![feature(portable_simd)]
 mod multi_mt;
 
-use indicatif::ParallelProgressIterator;
+use indicatif::{ParallelProgressIterator, ProgressBar, WeakProgressBar};
 use multi_mt::MultiMT19937;
 use rayon::prelude::*;
 use std::simd::{u32x8, Simd, SimdPartialEq};
@@ -44,6 +44,7 @@ fn find_frame_pair(
     ivs2: u32,
     (f1_min, f1_max): (Frame, Frame), // right-closed
     (f2_min, f2_max): (Frame, Frame), // right-closed
+    wpb: WeakProgressBar,
 ) -> Vec<(Seed, Frame, Frame)> {
     let mut results = Vec::new();
     let mut mt = MultiMT19937::default();
@@ -67,7 +68,15 @@ fn find_frame_pair(
 
         for i in 0..8 {
             if f1[i] != 0 && f2[i] != 0 {
-                results.push((s | (i as u32), f1[i], f2[i]));
+                let seed = s | (i as u32);
+                results.push((seed, f1[i], f2[i]));
+
+                if let Some(pb) = wpb.upgrade() {
+                    pb.println(format!(
+                        "Hit! => Seed: {:08X}, Frame1: {}, Frame2: {}",
+                        seed, f1[i], f2[i]
+                    ));
+                }
             }
         }
     }
@@ -87,10 +96,15 @@ fn find_seeds(
     let seed_hi16_l = seed_min >> 16;
     let seed_hi16_r = (seed_max >> 16) + 1;
 
+    let progress_bar = ProgressBar::new((seed_hi16_r - seed_hi16_l) as u64);
+    let wpb = progress_bar.downgrade();
+
     (seed_hi16_l..seed_hi16_r)
         .into_par_iter()
-        .progress()
-        .flat_map(|seed_hi16| find_frame_pair(seed_hi16, iv1, iv2, frame_range1, frame_range2))
+        .progress_with(progress_bar)
+        .flat_map(|seed_hi16| {
+            find_frame_pair(seed_hi16, iv1, iv2, frame_range1, frame_range2, wpb.clone())
+        })
         .filter(|(s, _, _)| seed_min <= *s && *s <= seed_max)
         .collect()
 }
@@ -105,7 +119,7 @@ fn main() {
         (600, 800),
         (1500, 1700),
     );
-    println!("Completed!");
+    println!("Done!");
     println!("Elapsed: {:?}", now.elapsed());
 
     for (seed, frame1, frame2) in result {
