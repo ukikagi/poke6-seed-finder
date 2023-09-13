@@ -2,16 +2,10 @@ use std::simd::{u32x8, Simd};
 
 const N: usize = 624;
 const M: usize = 397;
-const ONE: u32x8 = Simd::from_array([1, 1, 1, 1, 1, 1, 1, 1]);
-const MATRIX_A: u32x8 = Simd::from_array([
-    0x9908b0df, 0x9908b0df, 0x9908b0df, 0x9908b0df, 0x9908b0df, 0x9908b0df, 0x9908b0df, 0x9908b0df,
-]);
-const UPPER_MASK: u32x8 = Simd::from_array([
-    0x80000000, 0x80000000, 0x80000000, 0x80000000, 0x80000000, 0x80000000, 0x80000000, 0x80000000,
-]);
-const LOWER_MASK: u32x8 = Simd::from_array([
-    0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff,
-]);
+const ONE: u32x8 = Simd::from_array([1; 8]);
+const MATRIX_A: u32x8 = Simd::from_array([0x9908b0df; 8]);
+const UPPER_MASK: u32x8 = Simd::from_array([0x80000000; 8]);
+const LOWER_MASK: u32x8 = Simd::from_array([0x7fffffff; 8]);
 
 pub struct MultiMT19937 {
     idx: usize,
@@ -20,7 +14,7 @@ pub struct MultiMT19937 {
 
 const UNINITIALIZED: MultiMT19937 = MultiMT19937 {
     idx: 0,
-    state: [Simd::from_array([0, 0, 0, 0, 0, 0, 0, 0]); N],
+    state: [Simd::from_array([0; 8]); N],
 };
 
 impl MultiMT19937 {
