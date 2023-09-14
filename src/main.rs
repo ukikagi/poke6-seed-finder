@@ -72,18 +72,22 @@ fn find_frame_pair(
 
         // Advances f2_max + 6 - f2_min frames
         let f2 = find_frame(&mut mt, ivs2, (f2_min, f2_max));
+        if f2.simd_eq(Simd::splat(0)).all() {
+            continue;
+        }
 
         for i in 0..8 {
-            if f1[i] != 0 && f2[i] != 0 {
-                let seed = s | (i as u32);
-                results.push((seed, f1[i], f2[i]));
+            if f1[i] == 0 || f2[i] == 0 {
+                continue;
+            }
+            let seed = s | (i as u32);
+            results.push((seed, f1[i], f2[i]));
 
-                if let Some(pb) = wpb.upgrade() {
-                    pb.println(format!(
-                        "Hit! => Seed: {:08X}, Frame1: {}, Frame2: {}",
-                        seed, f1[i], f2[i]
-                    ));
-                }
+            if let Some(pb) = wpb.upgrade() {
+                pb.println(format!(
+                    "Hit! => Seed: {:08X}, Frame1: {}, Frame2: {}",
+                    seed, f1[i], f2[i]
+                ));
             }
         }
     }
@@ -138,14 +142,14 @@ fn main() -> io::Result<()> {
     let ivs2 = input_vec("IVs of Wild2", "22 27 22 1 7 27", 10);
     assert!(ivs2.len() == 6 && ivs2.iter().all(|&iv| iv <= 31));
 
-    let frame2 = input_vec("Frames of Wild1", "1500 1700", 10);
+    let frame2 = input_vec("Frames of Wild2", "1500 1700", 10);
     assert!(frame2.len() == 2);
 
     assert!(
-        frame1[0] < frame1[1]
-            && frame1[1] + 6 < frame2[0]
-            && frame2[0] < frame2[1]
-            && frame2[1] < 10000
+        frame1[0] <= frame1[1]
+            && frame1[1] + 6 <= frame2[0]
+            && frame2[0] <= frame2[1]
+            && frame2[1] <= 10000
     );
 
     let seed_range = input_vec("Seed range", "00000000 FFFFFFFF", 16);
