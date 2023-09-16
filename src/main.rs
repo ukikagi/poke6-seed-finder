@@ -2,7 +2,7 @@
 mod multi_mt;
 
 use dialoguer::Input;
-use indicatif::{ParallelProgressIterator, ProgressBar, WeakProgressBar};
+use indicatif::{ParallelProgressIterator, ProgressBar};
 use multi_mt::MultiMT19937;
 use multiversion::multiversion;
 use rayon::prelude::*;
@@ -51,7 +51,7 @@ fn find_frame_pair(
     ivs2: u32,
     (f1_min, f1_max): (Frame, Frame), // right-closed
     (f2_min, f2_max): (Frame, Frame), // right-closed
-    wpb: WeakProgressBar,
+    pb: &ProgressBar,
 ) -> Vec<(Seed, Frame, Frame)> {
     let mut results = Vec::new();
     let mut mt = MultiMT19937::default();
@@ -83,12 +83,10 @@ fn find_frame_pair(
             let seed = s | (i as u32);
             results.push((seed, f1[i], f2[i]));
 
-            if let Some(pb) = wpb.upgrade() {
-                pb.println(format!(
-                    "Hit! => Seed: {:08X}, Frame1: {}, Frame2: {}",
-                    seed, f1[i], f2[i]
-                ));
-            }
+            pb.println(format!(
+                "Hit! => Seed: {:08X}, Frame1: {}, Frame2: {}",
+                seed, f1[i], f2[i]
+            ));
         }
     }
     results
@@ -107,15 +105,12 @@ fn find_seeds(
     let seed_hi_l = seed_min >> W;
     let seed_hi_r = (seed_max >> W) + 1;
 
-    let progress_bar = ProgressBar::new((seed_hi_r - seed_hi_l) as u64);
-    let wpb = progress_bar.downgrade();
+    let pb = ProgressBar::new((seed_hi_r - seed_hi_l) as u64);
 
     (seed_hi_l..seed_hi_r)
         .into_par_iter()
-        .progress_with(progress_bar)
-        .flat_map(|seed_hi| {
-            find_frame_pair(seed_hi, iv1, iv2, frame_range1, frame_range2, wpb.clone())
-        })
+        .progress_with(pb.clone())
+        .flat_map(|seed_hi| find_frame_pair(seed_hi, iv1, iv2, frame_range1, frame_range2, &pb))
         .filter(|&(s, _, _)| seed_min <= s && s <= seed_max)
         .collect()
 }
@@ -133,13 +128,13 @@ fn input_vec(prompt: &str, init: &str, radix: u32) -> Vec<u32> {
 }
 
 fn main() -> io::Result<()> {
-    let ivs1 = input_vec("IVs of Wild1", "3 5 26 31 6 19", 10);
+    let ivs1 = input_vec("IVs of Wild1", "11 7 6 7 6 7", 10);
     assert!(ivs1.len() == 6 && ivs1.iter().all(|&iv| iv <= 31));
 
     let frame1 = input_vec("Frames of Wild1", "600 800", 10);
     assert!(frame1.len() == 2);
 
-    let ivs2 = input_vec("IVs of Wild2", "22 27 22 1 7 27", 10);
+    let ivs2 = input_vec("IVs of Wild2", "5 8 1 2 14 12", 10);
     assert!(ivs2.len() == 6 && ivs2.iter().all(|&iv| iv <= 31));
 
     let frame2 = input_vec("Frames of Wild2", "1500 1700", 10);

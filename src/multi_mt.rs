@@ -1,3 +1,14 @@
+// This implementation is largely based on rust-mersenne-twister licensed under MIT / Apache 2.0 dual license
+// GitHub: https://github.com/dcrewi/rust-mersenne-twister
+//
+// Copyright (c) 2015,2017 rust-mersenne-twister developers
+//
+// Licensed under the Apache License, Version 2.0
+// <LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0> or the MIT
+// license <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. All files in the project carrying such notice may not be copied,
+// modified, or distributed except according to those terms.
+
 use std::simd::{u32x8, Simd};
 
 const N: usize = 624;
