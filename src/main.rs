@@ -1,6 +1,6 @@
 #![feature(portable_simd)]
-mod multi_mt;
 mod find_seed_gpu;
+mod multi_mt;
 
 use dialoguer::Input;
 use indicatif::{ParallelProgressIterator, ProgressBar};
@@ -21,7 +21,7 @@ type Frame = u32;
 type Seed = u32;
 
 #[inline]
-fn ivs_to_u32(iv: IVs) -> u32 {
+fn encode_ivs(iv: IVs) -> u32 {
     (iv.0 << 25) | (iv.1 << 20) | (iv.2 << 15) | (iv.3 << 10) | (iv.4 << 5) | iv.5
 }
 
@@ -100,8 +100,8 @@ fn find_seeds(
     frame_range1: (Frame, Frame), // right-closed
     frame_range2: (Frame, Frame), // right-closed
 ) -> Vec<(Seed, Frame, Frame)> {
-    let iv1 = ivs_to_u32(ivs1);
-    let iv2 = ivs_to_u32(ivs2);
+    let iv1 = encode_ivs(ivs1);
+    let iv2 = encode_ivs(ivs2);
 
     let seed_hi_l = seed_min >> W;
     let seed_hi_r = (seed_max >> W) + 1;

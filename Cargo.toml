@@ -11,3 +11,6 @@ multiversion = "*"
 
 [build-dependencies]
 cc = "*"
+
+[[bin]]
+name = "find_seed_gpu"
