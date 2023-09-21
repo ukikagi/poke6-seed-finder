@@ -8,3 +8,6 @@ rayon = "*"
 indicatif = { version = "*", features = ["rayon"] }
 dialoguer = "*"
 multiversion = "*"
+
+[build-dependencies]
+cc = "*"

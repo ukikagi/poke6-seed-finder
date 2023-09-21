@@ -240,6 +240,7 @@ checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
 name = "poke6-seed-finder"
 version = "0.1.0"
 dependencies = [
+ "cc",
  "dialoguer",
  "indicatif",
  "multiversion",

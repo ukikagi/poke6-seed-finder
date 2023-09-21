@@ -1,5 +1,6 @@
 #![feature(portable_simd)]
 mod multi_mt;
+mod find_seed_gpu;
 
 use dialoguer::Input;
 use indicatif::{ParallelProgressIterator, ProgressBar};
