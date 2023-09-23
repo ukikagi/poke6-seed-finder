@@ -20,7 +20,7 @@ type Frame = u32;
 type Seed = u32;
 
 #[inline]
-fn ivs_to_u32(iv: IVs) -> u32 {
+fn encode_ivs(iv: IVs) -> u32 {
     (iv.0 << 25) | (iv.1 << 20) | (iv.2 << 15) | (iv.3 << 10) | (iv.4 << 5) | iv.5
 }
 
@@ -49,44 +49,43 @@ fn find_frame_pair(
     seed_hi: u32,
     ivs1: u32,
     ivs2: u32,
-    (f1_min, f1_max): (Frame, Frame), // right-closed
-    (f2_min, f2_max): (Frame, Frame), // right-closed
-    pb: &ProgressBar,
+    frame_range1: (Frame, Frame), // right-closed
+    frame_range2: (Frame, Frame), // right-closed
 ) -> Vec<(Seed, Frame, Frame)> {
     let mut results = Vec::new();
     let mut mt = MultiMT19937::default();
 
-    for s in (seed_hi << W..(seed_hi + 1) << W).step_by(8) {
-        let seed = Simd::from_array([s, s | 1, s | 2, s | 3, s | 4, s | 5, s | 6, s | 7]);
-        mt.reseed(seed);
+    let (f1_min, f1_max) = frame_range1;
+    let (f2_min, f2_max) = frame_range2;
 
-        mt.discard(PRE_ADVANCE_FRAME + f1_min);
+    let seed_min = seed_hi << W;
+    let seed_max = seed_min | ((1 << W) - 1);
+    for s in (seed_min..=seed_max).step_by(8) {
+        let seed = Simd::from_array([s, s | 1, s | 2, s | 3, s | 4, s | 5, s | 6, s | 7]);
+        mt.init(seed);
+        mt.reserve((PRE_ADVANCE_FRAME + f1_max + 6) as usize);
+
+        mt.discard((PRE_ADVANCE_FRAME + f1_min) as usize);
 
         // Advances f1_max + 6 - f1_min frames
-        let f1 = find_frame(&mut mt, ivs1, (f1_min, f1_max));
+        let f1 = find_frame(&mut mt, ivs1, frame_range1);
         if f1.simd_eq(Simd::splat(0)).all() {
             continue;
         }
 
-        mt.discard(f2_min - f1_max - 6);
+        mt.reserve((PRE_ADVANCE_FRAME + f2_max + 6) as usize);
+        mt.discard((f2_min - f1_max - 6) as usize);
 
         // Advances f2_max + 6 - f2_min frames
-        let f2 = find_frame(&mut mt, ivs2, (f2_min, f2_max));
+        let f2 = find_frame(&mut mt, ivs2, frame_range2);
         if f2.simd_eq(Simd::splat(0)).all() {
             continue;
         }
 
         for i in 0..8 {
-            if f1[i] == 0 || f2[i] == 0 {
-                continue;
+            if f1[i] != 0 || f2[i] != 0 {
+                results.push((s | (i as u32), f1[i], f2[i]));
             }
-            let seed = s | (i as u32);
-            results.push((seed, f1[i], f2[i]));
-
-            pb.println(format!(
-                "Hit! => Seed: {:08X}, Frame1: {}, Frame2: {}",
-                seed, f1[i], f2[i]
-            ));
         }
     }
     results
@@ -99,8 +98,8 @@ fn find_seeds(
     frame_range1: (Frame, Frame), // right-closed
     frame_range2: (Frame, Frame), // right-closed
 ) -> Vec<(Seed, Frame, Frame)> {
-    let iv1 = ivs_to_u32(ivs1);
-    let iv2 = ivs_to_u32(ivs2);
+    let ivs1 = encode_ivs(ivs1);
+    let ivs2 = encode_ivs(ivs2);
 
     let seed_hi_l = seed_min >> W;
     let seed_hi_r = (seed_max >> W) + 1;
@@ -110,7 +109,14 @@ fn find_seeds(
     (seed_hi_l..seed_hi_r)
         .into_par_iter()
         .progress_with(pb.clone())
-        .flat_map(|seed_hi| find_frame_pair(seed_hi, iv1, iv2, frame_range1, frame_range2, &pb))
+        .flat_map(|seed_hi| {
+            let results = find_frame_pair(seed_hi, ivs1, ivs2, frame_range1, frame_range2);
+            for (s, f1, f2) in &results {
+                let msg = format!("Hit! => Seed: {:08X}, Frame1: {}, Frame2: {}", s, f1, f2);
+                pb.println(msg);
+            }
+            results
+        })
         .filter(|&(s, _, _)| seed_min <= s && s <= seed_max)
         .collect()
 }
