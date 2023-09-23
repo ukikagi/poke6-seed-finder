@@ -16,7 +16,7 @@ const M: usize = 397;
 const UPPER_MASK: u32x8 = Simd::from_array([0x80000000; 8]);
 const LOWER_MASK: u32x8 = Simd::from_array([0x7fffffff; 8]);
 
-const MAX_FRAME: usize = 3000;
+const MAX_FRAME: usize = 3100;
 
 #[inline]
 fn temper(mut x: u32x8) -> u32x8 {

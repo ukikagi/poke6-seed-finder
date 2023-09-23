@@ -135,26 +135,49 @@ fn input_vec(prompt: &str, init: &str, radix: u32) -> Vec<u32> {
 
 fn main() -> io::Result<()> {
     let ivs1 = input_vec("IVs of Wild1", "11 7 6 7 6 7", 10);
-    assert!(ivs1.len() == 6 && ivs1.iter().all(|&iv| iv <= 31));
+    assert!(
+        ivs1.len() == 6 && ivs1.iter().all(|&iv| iv <= 31),
+        "IVs must be space-delimited 6 integers between 0 and 31."
+    );
 
     let frame1 = input_vec("Frames of Wild1", "600 800", 10);
-    assert!(frame1.len() == 2);
+    assert!(
+        frame1.len() == 2,
+        "Frames must be space-delimited 2 integers."
+    );
+    assert!(
+        frame1[0] <= frame1[1],
+        "Min frame must be smaller than max frame."
+    );
+    assert!(frame1[1] <= 3000, "Frames must be <= 3000");
 
     let ivs2 = input_vec("IVs of Wild2", "5 8 1 2 14 12", 10);
-    assert!(ivs2.len() == 6 && ivs2.iter().all(|&iv| iv <= 31));
+    assert!(
+        ivs2.len() == 6 && ivs2.iter().all(|&iv| iv <= 31),
+        "IVs must be space-delimited 6 integers between 0 and 31."
+    );
 
     let frame2 = input_vec("Frames of Wild2", "1500 1700", 10);
-    assert!(frame2.len() == 2);
+    assert!(
+        frame2.len() == 2,
+        "Frames must be space-delimited 2 integers."
+    );
+    assert!(
+        frame2[0] <= frame2[1],
+        "Min frame must be smaller than max frame."
+    );
+    assert!(frame2[1] <= 3000, "Frames must be <= 3000");
 
     assert!(
-        frame1[0] <= frame1[1]
-            && frame1[1] + 6 <= frame2[0]
-            && frame2[0] <= frame2[1]
-            && frame2[1] <= 10000
+        frame1[1] + 6 <= frame2[0],
+        "Min frame of Wild2 must be >= Max frame of Wild1 + 6"
     );
 
     let seed_range = input_vec("Seed range", "00000000 FFFFFFFF", 16);
-    assert!(seed_range.len() == 2);
+    assert!(
+        seed_range.len() == 2,
+        "Seed range must be space-delimited 2 integers in hex."
+    );
 
     println!();
     let now = std::time::Instant::now();
