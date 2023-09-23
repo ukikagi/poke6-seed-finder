@@ -14,12 +14,13 @@ constexpr uint32_t MATRIX_A = 0x9908b0dfUL;
 constexpr uint32_t UPPER_MASK = 0x80000000UL;
 constexpr uint32_t LOWER_MASK = 0x7fffffffUL;
 
-inline uint32_t encode_ivs(uint32_t h, uint32_t a, uint32_t b, uint32_t c,
-                           uint32_t d, uint32_t s) {
+__host__ __device__ inline uint32_t encode_ivs(uint32_t h, uint32_t a,
+                                               uint32_t b, uint32_t c,
+                                               uint32_t d, uint32_t s) {
   return (h << 25) | (a << 20) | (b << 15) | (c << 10) | (d << 5) | s;
 }
 
-inline uint32_t temper(uint32_t x) {
+__host__ __device__ inline uint32_t temper(uint32_t x) {
   x ^= x >> 11;
   x ^= (x << 7) & 0x9d2c5680UL;
   x ^= (x << 15) & 0xefc60000UL;
@@ -126,34 +127,26 @@ void find_seed_gpu(uint32_t seed_min, uint32_t seed_max, uint32_t ivs1,
                    uint32_t f2_min, uint32_t f2_max) {
   int device_count;
   if (cudaGetDeviceCount(&device_count) == cudaSuccess) {
-    std::printf("%d device(s) are available :)\n", device_count);
+    // std::printf("%d device(s) are available :)\n", device_count);
   } else {
     std::printf("CUDA is not available :(\n");
     return;
   }
 
-  // auto begin = thrust::make_counting_iterator(seed_min);
-  // int64_t n = (int64_t)seed_max - seed_min + 1;
+  int64_t n = (int64_t)seed_max - seed_min + 1;
+  thrust::device_vector<uint32_t> dvec(n);
 
-  int n = 4;
-  thrust::host_vector<int> hvec(n);
-  thrust::fill(hvec.begin(), hvec.end(), 22);
-  std::printf("Results:\n");
-  for (auto x : hvec) {
-    std::printf("- Seed: %08X\n", x);
-  }
+  auto begin = thrust::make_counting_iterator(seed_min);
+  auto end =
+      thrust::copy_if(begin, begin + n, dvec.begin(),
+                      is_hit(ivs1, ivs2, f1_min, f1_max, f2_min, f2_max));
+  dvec.resize(thrust::distance(dvec.begin(), end));
 
-  thrust::device_vector<int> dvec = hvec;
-  dvec[0] = 3;
+  thrust::host_vector<uint32_t> hvec = dvec;
 
-  // auto end =
-  //     thrust::copy_if(begin, begin + n, dvec.begin(),
-  //                     is_hit(ivs1, ivs2, f1_min, f1_max, f2_min, f2_max));
-  // dvec.resize(end - dvec.begin());
-
-  std::printf("Results:\n");
-  for (int i = 0; i < dvec.size(); i++) {
-    std::printf("- Seed: %08X\n", dvec[i]);
+  std::cout << "Results:" << std::endl;
+  for (int i = 0; i < hvec.size(); i++) {
+    std::cout << "- Seed: " << hvec[i] << std::endl;
   }
 }
 }

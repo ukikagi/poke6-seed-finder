@@ -56,26 +56,14 @@ fn find_seeds(
 }
 
 fn main() {
-    // let now = std::time::Instant::now();
-    // find_seeds(
-    //     (0xDE000000, 0xDEFFFFFF),
-    //     (11, 7, 6, 7, 6, 7),
-    //     (5, 8, 1, 2, 14, 12),
-    //     (600, 800),
-    //     (1500, 1700),
-    // );
-    // println!("Done!");
-    // println!("Elapsed: {:?}", now.elapsed());
-    unsafe {
-        find_seed_gpu(
-            0xDEAD0000,
-            0xDEADFFFF,
-            encode_ivs((11, 7, 6, 7, 6, 7)),
-            encode_ivs((5, 8, 1, 2, 14, 12)),
-            600,
-            800,
-            1500,
-            1700,
-        )
-    }
+    let now = std::time::Instant::now();
+    find_seeds(
+        (0xDE000000, 0xDEFFFFFF),
+        (11, 7, 6, 7, 6, 7),
+        (5, 8, 1, 2, 14, 12),
+        (600, 800),
+        (1500, 1700),
+    );
+    println!("Done!");
+    println!("Elapsed: {:?}", now.elapsed());
 }
