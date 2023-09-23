@@ -14,16 +14,16 @@ constexpr uint32_t MATRIX_A = 0x9908b0dfUL;
 constexpr uint32_t UPPER_MASK = 0x80000000UL;
 constexpr uint32_t LOWER_MASK = 0x7fffffffUL;
 
+constexpr int PRE_ADVANCE_FRAME = 63;
 constexpr int MAX_FRAME = 2000;
 constexpr int F1_MIN = 600;
 constexpr int F1_MAX = 800;
 constexpr int F2_MIN = 1500;
 constexpr int F2_MAX = 1700;
 
-__host__ __device__ inline uint32_t encode_ivs(uint32_t h, uint32_t a,
-                                               uint32_t b, uint32_t c,
-                                               uint32_t d, uint32_t s) {
-  return (h << 25) | (a << 20) | (b << 15) | (c << 10) | (d << 5) | s;
+__host__ __device__ inline uint32_t init_ivs(uint32_t a, uint32_t b, uint32_t c,
+                                             uint32_t d, uint32_t s) {
+  return (a << 20) | (b << 15) | (c << 10) | (d << 5) | s;
 }
 
 __host__ __device__ inline uint32_t temper(uint32_t x) {
@@ -34,11 +34,16 @@ __host__ __device__ inline uint32_t temper(uint32_t x) {
   return x;
 }
 
-struct mt19937 {
-  uint32_t state[N + MAX_FRAME];
-  int idx = 0;
+struct is_hit {
+  const uint32_t ivs1;
+  const uint32_t ivs2;
 
-  __host__ __device__ void reseed(uint32_t seed) {
+  is_hit(uint32_t _ivs1, uint32_t _ivs2) : ivs1(_ivs1), ivs2(_ivs2) {}
+
+  __host__ __device__ bool operator()(uint32_t seed) const {
+    uint32_t state[N + MAX_FRAME];
+    int idx = 0;
+
     state[0] = seed;
 #pragma unroll
     for (int i = 1; i < N; i++) {
@@ -55,58 +60,27 @@ struct mt19937 {
       state[i] = temper(state[i]);
     }
     idx = N;
-  }
 
-  __host__ __device__ uint32_t next_u32() { return state[idx++]; }
-
-  __host__ __device__ uint32_t next_iv() { return next_u32() >> 27; }
-
-  __host__ __device__ void discard(int n) { idx += n; }
-};
-
-constexpr int PRE_ADVANCE_FRAME = 63;
-
-struct is_hit {
-  const uint32_t ivs1;
-  const uint32_t ivs2;
-
-  is_hit(uint32_t _ivs1, uint32_t _ivs2) : ivs1(_ivs1), ivs2(_ivs2) {}
-
-  __host__ __device__ bool find_frame1(mt19937& mt) const {
-    uint32_t curr = encode_ivs(0, mt.next_iv(), mt.next_iv(), mt.next_iv(),
-                               mt.next_iv(), mt.next_iv());
-    bool result = false;
+    idx += PRE_ADVANCE_FRAME + F1_MIN;
+    uint32_t curr =
+        init_ivs(state[idx++] >> 27, state[idx++] >> 27, state[idx++] >> 27,
+                 state[idx++] >> 27, state[idx++] >> 27);
+    bool found_f1 = false;
 #pragma unroll
     for (int i = F1_MIN; i <= F1_MAX; i++) {
-      curr = (curr & 0x1FFFFFFUL) << 5 | mt.next_iv();
-      result = result || curr == ivs1;
+      curr = (curr & 0x1FFFFFFUL) << 5 | (state[idx++] >> 27);
+      found_f1 = found_f1 || (curr == ivs1);
     }
-    return result;
-  }
 
-  __host__ __device__ bool find_frame2(mt19937& mt) const {
-    uint32_t curr = encode_ivs(0, mt.next_iv(), mt.next_iv(), mt.next_iv(),
-                               mt.next_iv(), mt.next_iv());
-    bool result = false;
+    idx += F2_MIN - F1_MAX - 6;
+    curr = init_ivs(state[idx++] >> 27, state[idx++] >> 27, state[idx++] >> 27,
+                    state[idx++] >> 27, state[idx++] >> 27);
+    bool found_f2 = false;
 #pragma unroll
     for (int i = F2_MIN; i <= F2_MAX; i++) {
-      curr = (curr & 0x1FFFFFFUL) << 5 | mt.next_iv();
-      result = result || curr == ivs2;
+      curr = (curr & 0x1FFFFFFUL) << 5 | (state[idx++] >> 27);
+      found_f2 = found_f2 || (curr == ivs2);
     }
-    return result;
-  }
-
-  __host__ __device__ bool operator()(uint32_t seed) const {
-    mt19937 mt;
-    mt.reseed(seed);
-
-    mt.discard(PRE_ADVANCE_FRAME + F1_MIN);
-    // Advances f1_max + 6 - f1_min frames
-    bool found_f1 = find_frame1(mt);
-
-    mt.discard(F2_MIN - F1_MAX - 6);
-    // Advances f2_max + 6 - f2_min frames
-    bool found_f2 = find_frame2(mt);
 
     return found_f1 && found_f2;
   }
