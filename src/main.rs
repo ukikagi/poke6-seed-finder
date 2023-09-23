@@ -56,7 +56,9 @@ fn find_frame_pair(
     let mut results = Vec::new();
     let mut mt = MultiMT19937::default();
 
-    for s in (seed_hi << W..(seed_hi + 1) << W).step_by(8) {
+    let seed_min = seed_hi << W;
+    let seed_max = seed_min | ((1 << W) - 1);
+    for s in (seed_min..=seed_max).step_by(8) {
         let seed = Simd::from_array([s, s | 1, s | 2, s | 3, s | 4, s | 5, s | 6, s | 7]);
         mt.init(seed);
         mt.reserve((PRE_ADVANCE_FRAME + f1_max + 6) as usize);
