@@ -14,6 +14,12 @@ constexpr uint32_t MATRIX_A = 0x9908b0dfUL;
 constexpr uint32_t UPPER_MASK = 0x80000000UL;
 constexpr uint32_t LOWER_MASK = 0x7fffffffUL;
 
+constexpr int MAX_FRAME = 2000;
+constexpr int F1_MIN = 600;
+constexpr int F1_MAX = 800;
+constexpr int F2_MIN = 1500;
+constexpr int F2_MAX = 1700;
+
 __host__ __device__ inline uint32_t encode_ivs(uint32_t h, uint32_t a,
                                                uint32_t b, uint32_t c,
                                                uint32_t d, uint32_t s) {
@@ -29,46 +35,33 @@ __host__ __device__ inline uint32_t temper(uint32_t x) {
 }
 
 struct mt19937 {
-  uint32_t state[N];
+  uint32_t state[N + MAX_FRAME];
   int idx = 0;
 
   __host__ __device__ void reseed(uint32_t seed) {
-    idx = N;
     state[0] = seed;
+#pragma unroll
     for (int i = 1; i < N; i++) {
       state[i] = 1812433253UL * (state[i - 1] ^ (state[i - 1] >> 30)) + i;
     }
+#pragma unroll
+    for (int i = N; i < N + MAX_FRAME; i++) {
+      uint32_t x =
+          (state[i - N] & UPPER_MASK) | (state[i + 1 - N] & LOWER_MASK);
+      state[i] = state[i + M - N] ^ (x >> 1) ^ ((x & ONE) * MATRIX_A);
+    }
+#pragma unroll
+    for (int i = N; i < N + MAX_FRAME; i++) {
+      state[i] = temper(state[i]);
+    }
+    idx = N;
   }
 
-  __host__ __device__ uint32_t next_u32() {
-    if (idx >= N) {
-      fill_next_state();
-    }
-    return temper(state[idx++]);
-  }
+  __host__ __device__ uint32_t next_u32() { return state[idx++]; }
 
   __host__ __device__ uint32_t next_iv() { return next_u32() >> 27; }
 
-  __host__ __device__ void discard(int n) {
-    for (int i = 0; i < n; i++) {
-      next_u32();
-    }
-  }
-
-  __host__ __device__ void fill_next_state() {
-    uint32_t x;
-    for (int i = 0; i < N - M; i++) {
-      x = (state[i] & UPPER_MASK) | (state[i + 1] & LOWER_MASK);
-      state[i] = state[i + M] ^ (x >> 1) ^ ((x & ONE) * MATRIX_A);
-    }
-    for (int i = N - M; i < N - 1; i++) {
-      x = (state[i] & UPPER_MASK) | (state[i + 1] & LOWER_MASK);
-      state[i] = state[i + M - N] ^ (x >> 1) ^ ((x & ONE) * MATRIX_A);
-    }
-    x = (state[N - 1] & UPPER_MASK) | (state[0] & LOWER_MASK);
-    state[N - 1] = state[M - 1] ^ (x >> 1) ^ ((x & ONE) * MATRIX_A);
-    idx = 0;
-  }
+  __host__ __device__ void discard(int n) { idx += n; }
 };
 
 constexpr int PRE_ADVANCE_FRAME = 63;
@@ -76,29 +69,29 @@ constexpr int PRE_ADVANCE_FRAME = 63;
 struct is_hit {
   const uint32_t ivs1;
   const uint32_t ivs2;
-  const int f1_min;
-  const int f1_max;
-  const int f2_min;
-  const int f2_max;
 
-  is_hit(uint32_t _ivs1, uint32_t _ivs2, int _f1_min, int _f1_max, int _f2_min,
-         int _f2_max)
-      : ivs1(_ivs1),
-        ivs2(_ivs2),
-        f1_min(_f1_min),
-        f1_max(_f1_max),
-        f2_min(_f2_min),
-        f2_max(_f2_max) {}
+  is_hit(uint32_t _ivs1, uint32_t _ivs2) : ivs1(_ivs1), ivs2(_ivs2) {}
 
-  // Advances f_max + 6 - f_min frames
-  __host__ __device__ bool find_frame(mt19937& mt, uint32_t ivs, uint32_t f_min,
-                                      uint32_t f_max) const {
+  __host__ __device__ bool find_frame1(mt19937& mt) const {
     uint32_t curr = encode_ivs(0, mt.next_iv(), mt.next_iv(), mt.next_iv(),
                                mt.next_iv(), mt.next_iv());
     bool result = false;
-    for (int i = f_min; i <= f_max; i++) {
+#pragma unroll
+    for (int i = F1_MIN; i <= F1_MAX; i++) {
       curr = (curr & 0x1FFFFFFUL) << 5 | mt.next_iv();
-      result = result || curr == ivs;
+      result = result || curr == ivs1;
+    }
+    return result;
+  }
+
+  __host__ __device__ bool find_frame2(mt19937& mt) const {
+    uint32_t curr = encode_ivs(0, mt.next_iv(), mt.next_iv(), mt.next_iv(),
+                               mt.next_iv(), mt.next_iv());
+    bool result = false;
+#pragma unroll
+    for (int i = F2_MIN; i <= F2_MAX; i++) {
+      curr = (curr & 0x1FFFFFFUL) << 5 | mt.next_iv();
+      result = result || curr == ivs2;
     }
     return result;
   }
@@ -107,13 +100,13 @@ struct is_hit {
     mt19937 mt;
     mt.reseed(seed);
 
-    mt.discard(PRE_ADVANCE_FRAME + f1_min);
+    mt.discard(PRE_ADVANCE_FRAME + F1_MIN);
     // Advances f1_max + 6 - f1_min frames
-    bool found_f1 = find_frame(mt, ivs1, f1_min, f1_max);
+    bool found_f1 = find_frame1(mt);
 
-    mt.discard(f2_min - f1_max - 6);
+    mt.discard(F2_MIN - F1_MAX - 6);
     // Advances f2_max + 6 - f2_min frames
-    bool found_f2 = find_frame(mt, ivs2, f2_min, f2_max);
+    bool found_f2 = find_frame2(mt);
 
     return found_f1 && found_f2;
   }
@@ -138,8 +131,7 @@ void find_seed_gpu(uint32_t seed_min, uint32_t seed_max, uint32_t ivs1,
 
   auto begin = thrust::make_counting_iterator(seed_min);
   auto end =
-      thrust::copy_if(begin, begin + n, dvec.begin(),
-                      is_hit(ivs1, ivs2, f1_min, f1_max, f2_min, f2_max));
+      thrust::copy_if(begin, begin + n, dvec.begin(), is_hit(ivs1, ivs2));
   dvec.resize(thrust::distance(dvec.begin(), end));
 
   thrust::host_vector<uint32_t> hvec = dvec;

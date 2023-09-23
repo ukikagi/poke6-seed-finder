@@ -1,7 +1,7 @@
 type IVs = (u32, u32, u32, u32, u32, u32);
 type Frame = u32;
 
-const W: u32 = 20;
+const W: u32 = 24;
 
 #[inline]
 fn encode_ivs(iv: IVs) -> u32 {
