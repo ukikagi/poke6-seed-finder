@@ -20,7 +20,7 @@ type Frame = u32;
 type Seed = u32;
 
 #[inline]
-fn ivs_to_u32(iv: IVs) -> u32 {
+fn encode_ivs(iv: IVs) -> u32 {
     (iv.0 << 25) | (iv.1 << 20) | (iv.2 << 15) | (iv.3 << 10) | (iv.4 << 5) | iv.5
 }
 
@@ -58,9 +58,10 @@ fn find_frame_pair(
 
     for s in (seed_hi << W..(seed_hi + 1) << W).step_by(8) {
         let seed = Simd::from_array([s, s | 1, s | 2, s | 3, s | 4, s | 5, s | 6, s | 7]);
-        mt.reseed(seed);
+        mt.init(seed);
+        mt.reserve((PRE_ADVANCE_FRAME + f1_max + 6) as usize);
 
-        mt.discard(PRE_ADVANCE_FRAME + f1_min);
+        mt.discard((PRE_ADVANCE_FRAME + f1_min) as usize);
 
         // Advances f1_max + 6 - f1_min frames
         let f1 = find_frame(&mut mt, ivs1, (f1_min, f1_max));
@@ -68,7 +69,8 @@ fn find_frame_pair(
             continue;
         }
 
-        mt.discard(f2_min - f1_max - 6);
+        mt.reserve((PRE_ADVANCE_FRAME + f2_max + 6) as usize);
+        mt.discard((f2_min - f1_max - 6) as usize);
 
         // Advances f2_max + 6 - f2_min frames
         let f2 = find_frame(&mut mt, ivs2, (f2_min, f2_max));
@@ -99,8 +101,8 @@ fn find_seeds(
     frame_range1: (Frame, Frame), // right-closed
     frame_range2: (Frame, Frame), // right-closed
 ) -> Vec<(Seed, Frame, Frame)> {
-    let iv1 = ivs_to_u32(ivs1);
-    let iv2 = ivs_to_u32(ivs2);
+    let iv1 = encode_ivs(ivs1);
+    let iv2 = encode_ivs(ivs2);
 
     let seed_hi_l = seed_min >> W;
     let seed_hi_r = (seed_max >> W) + 1;
