@@ -21,6 +21,8 @@ fn input_vec(prompt: &str, init: &str, radix: u32) -> Vec<u32> {
 }
 
 fn main() -> io::Result<()> {
+    // TODO: Clean up these validation logic
+
     let ivs1 = input_vec("IVs of Wild1", "11 7 6 7 6 7", 10);
     assert!(
         ivs1.len() == 6 && ivs1.iter().all(|&iv| iv <= 31),
@@ -102,8 +104,7 @@ fn main() -> io::Result<()> {
     println!();
 
     let _ = Input::<String>::new()
-        .with_prompt("Press Enter to quit")
-        .allow_empty(true)
+        .with_prompt("Press Ctrl+C to quit")
         .interact();
     Ok(())
 }

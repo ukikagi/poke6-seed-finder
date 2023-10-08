@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rayon = "*"
-indicatif = { version = "*", features = ["rayon"] }
-dialoguer = "*"
-multiversion = "*"
+dialoguer = "0.11.0"
+indicatif = { version = "0.17.7", features = ["rayon"] }
+multiversion = "0.7.3"
+rayon = "1.8.0"
