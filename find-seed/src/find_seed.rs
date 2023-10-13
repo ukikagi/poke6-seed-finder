@@ -94,13 +94,37 @@ fn find_seed_simd(
 }
 
 pub fn find_seed(
-    seed_range: (u32, u32), // right-closed
+    seed_range: (Seed, Seed), // right-closed
     ivs1: IVs,
     ivs2: IVs,
     frame_range1: (Frame, Frame), // right-closed
     frame_range2: (Frame, Frame), // right-closed
     notify_progress: impl Fn(&[Hit], u32) -> () + Sync,
 ) -> Vec<Hit> {
+    assert!(seed_range.0 <= seed_range.1);
+    assert!(
+        ivs1.0 <= 31
+            && ivs1.1 <= 31
+            && ivs1.2 <= 31
+            && ivs1.3 <= 31
+            && ivs1.4 <= 31
+            && ivs1.5 <= 31
+    );
+    assert!(
+        ivs2.0 <= 31
+            && ivs2.1 <= 31
+            && ivs2.2 <= 31
+            && ivs2.3 <= 31
+            && ivs2.4 <= 31
+            && ivs2.5 <= 31
+    );
+    assert!(
+        frame_range1.0 <= frame_range1.1
+            && frame_range1.1 + 6 <= frame_range2.0
+            && frame_range2.0 <= frame_range2.1
+            && frame_range2.1 <= 3000
+    );
+
     let ivs1 = encode_ivs(ivs1);
     let ivs2 = encode_ivs(ivs2);
 

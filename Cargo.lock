@@ -134,6 +134,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "25cbce373ec4653f1a01a31e8a5e5ec0c622dc27ff9c4e6606eefef5cbbed4a5"
 
 [[package]]
+name = "find-seed"
+version = "0.1.2"
+dependencies = [
+ "multiversion",
+ "rayon",
+ "smallvec",
+]
+
+[[package]]
+name = "find-seed-cli"
+version = "0.1.2"
+dependencies = [
+ "dialoguer",
+ "find-seed",
+ "indicatif",
+]
+
+[[package]]
 name = "indicatif"
 version = "0.17.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -143,7 +161,6 @@ dependencies = [
  "instant",
  "number_prefix",
  "portable-atomic",
- "rayon",
  "unicode-width",
 ]
 
@@ -210,17 +227,6 @@ name = "number_prefix"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
-
-[[package]]
-name = "poke6-seed-finder"
-version = "0.1.2"
-dependencies = [
- "dialoguer",
- "indicatif",
- "multiversion",
- "rayon",
- "smallvec",
-]
 
 [[package]]
 name = "portable-atomic"

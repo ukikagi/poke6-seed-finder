@@ -1,0 +1,10 @@
+[package]
+authors = ["ukikagi"]
+edition = "2021"
+name = "cli"
+version = "0.1.2"
+
+[dependencies]
+dialoguer = "0.11.0"
+find-seed = {path = "../find-seed"}
+indicatif = "0.17.7"

@@ -1,14 +1,9 @@
-[package]
-edition = "2021"
-name = "poke6-seed-finder"
-version = "0.1.2"
-
-[dependencies]
-dialoguer = "0.11.0"
-indicatif = {version = "0.17.7", features = ["rayon"]}
-multiversion = "0.7.3"
-rayon = "1.8.0"
-smallvec = "1.11.1"
+[workspace]
+members = [
+  "find-seed",
+  "find-seed-cli",
+]
+resolver = "2"
 
 [profile.release]
 codegen-units = 1
