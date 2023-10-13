@@ -1,7 +1,7 @@
 [workspace]
 members = [
   "find-seed",
-  "find-seed-cli",
+  "cli",
 ]
 resolver = "2"
 
