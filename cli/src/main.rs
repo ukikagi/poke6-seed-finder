@@ -1,9 +1,5 @@
-#![feature(portable_simd)]
-mod find_seed;
-mod multi_mt;
-
-use crate::find_seed::Hit;
 use dialoguer::Input;
+use find_seed::{find_seed, Hit};
 use indicatif::ProgressBar;
 use std::io;
 
@@ -82,7 +78,7 @@ fn main() -> io::Result<()> {
         pb.inc(1);
     };
 
-    let hits = find_seed::find_seed(
+    let hits = find_seed(
         (seed_range[0], seed_range[1]),
         (ivs1[0], ivs1[1], ivs1[2], ivs1[3], ivs1[4], ivs1[5]),
         (ivs2[0], ivs2[1], ivs2[2], ivs2[3], ivs2[4], ivs2[5]),
