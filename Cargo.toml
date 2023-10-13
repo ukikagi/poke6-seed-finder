@@ -1,7 +1,7 @@
 [package]
 edition = "2021"
 name = "poke6-seed-finder"
-version = "0.1.0"
+version = "0.1.2"
 
 [dependencies]
 dialoguer = "0.11.0"
