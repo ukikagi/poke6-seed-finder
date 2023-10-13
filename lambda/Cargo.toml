@@ -1,0 +1,18 @@
+[package]
+edition = "2021"
+name = "find-gen6-seed"
+version = "0.1.0"
+
+[dependencies]
+aws-config = "0.56.1"
+find-seed = {path = "../find-seed"}
+lambda_runtime = "0.8.1"
+serde = "1.0.136"
+serde_json = "1.0.107"
+tokio = {version = "1", features = ["macros"]}
+tracing = {version = "0.1", features = ["log"]}
+tracing-subscriber = {version = "0.3", default-features = false, features = ["fmt"]}
+
+[package.metadata.lambda.deploy]
+memory = 10240
+timeout = 30

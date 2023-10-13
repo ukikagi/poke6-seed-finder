@@ -2,6 +2,7 @@
 members = [
   "find-seed",
   "cli",
+  "lambda",
 ]
 resolver = "2"
 
