@@ -81,7 +81,7 @@ fn find_seed_simd(
         }
 
         for i in 0..8 {
-            if f1[i] != 0 || f2[i] != 0 {
+            if f1[i] != 0 && f2[i] != 0 {
                 results.push(Hit {
                     seed: s | (i as u32),
                     frame1: f1[i],
