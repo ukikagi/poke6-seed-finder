@@ -2,11 +2,10 @@
 mod find_seed;
 mod multi_mt;
 
+use crate::find_seed::Hit;
 use dialoguer::Input;
 use indicatif::ProgressBar;
 use std::io;
-
-use crate::find_seed::{Frame, Seed};
 
 fn input_vec(prompt: &str, init: &str, radix: u32) -> Vec<u32> {
     Input::<String>::new()
@@ -72,22 +71,24 @@ fn main() -> io::Result<()> {
     let now = std::time::Instant::now();
 
     let pb = ProgressBar::new(0);
-    let notify = move |res: &[(Seed, Frame, Frame)], len: u32| {
+    let notify_progress = move |hits: &[Hit], len: u32| {
         pb.set_length(len as u64);
-        for (s, f1, f2) in res {
-            let msg = format!("Hit! => Seed: {:08X}, Frame1: {}, Frame2: {}", s, f1, f2);
-            pb.println(msg);
+        for hit in hits {
+            pb.println(format!(
+                "Hit! => Seed: {:08X}, Frame1: {}, Frame2: {}",
+                hit.seed, hit.frame1, hit.frame2
+            ));
         }
         pb.inc(1);
     };
 
-    let result = find_seed::find_seed(
+    let hits = find_seed::find_seed(
         (seed_range[0], seed_range[1]),
         (ivs1[0], ivs1[1], ivs1[2], ivs1[3], ivs1[4], ivs1[5]),
         (ivs2[0], ivs2[1], ivs2[2], ivs2[3], ivs2[4], ivs2[5]),
         (frame1[0], frame1[1]),
         (frame2[0], frame2[1]),
-        notify,
+        notify_progress,
     );
 
     println!("Done!");
@@ -95,10 +96,10 @@ fn main() -> io::Result<()> {
 
     println!();
     println!("Results:");
-    for (seed, frame1, frame2) in result {
+    for hit in &hits {
         println!(
             "- Seed: {:08X}, Frame1: {}, Frame2: {}",
-            seed, frame1, frame2
+            hit.seed, hit.frame1, hit.frame2
         );
     }
     println!();

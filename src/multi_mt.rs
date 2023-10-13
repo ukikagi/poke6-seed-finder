@@ -9,7 +9,10 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
-use std::simd::{u32x8, Simd, SimdPartialEq};
+use std::{
+    ops::Neg,
+    simd::{u32x8, Simd, SimdInt, SimdUint},
+};
 
 const N: usize = 624;
 const M: usize = 397;
@@ -30,9 +33,7 @@ fn temper(mut x: u32x8) -> u32x8 {
 #[inline]
 fn twist(x: u32x8) -> u32x8 {
     (x >> Simd::splat(1))
-        ^ ((x & Simd::splat(1))
-            .simd_eq(Simd::splat(0))
-            .select(Simd::splat(0), Simd::splat(0x9908b0df)))
+        ^ ((x & Simd::splat(1)).cast::<i32>().neg().cast::<u32>() & Simd::splat(0x9908b0df))
 }
 
 pub struct MultiMT19937 {
@@ -47,7 +48,7 @@ impl Default for MultiMT19937 {
         MultiMT19937 {
             idx: 0,
             size: 0,
-            state: [Simd::from_array([0; 8]); N + MAX_FRAME],
+            state: [Simd::splat(0); N + MAX_FRAME],
         }
     }
 }
