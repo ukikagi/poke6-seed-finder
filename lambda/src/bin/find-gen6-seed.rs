@@ -1,4 +1,3 @@
-#![feature(portable_simd)]
 use find_seed::find_seed;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use serde::{Deserialize, Serialize};
