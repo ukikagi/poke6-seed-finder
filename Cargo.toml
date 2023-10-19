@@ -1,10 +1,15 @@
-[workspace]
-members = [
-  "find-seed",
-  "cli",
-  "lambda",
-]
-resolver = "2"
+[package]
+authors = ["ukikagi"]
+edition = "2021"
+name = "find-seed"
+version = "0.1.2"
+
+[dependencies]
+dialoguer = "0.11.0"
+indicatif = "0.17.7"
+multiversion = "0.7.3"
+rayon = "1.8.0"
+smallvec = "1.11.1"
 
 [profile.release]
 codegen-units = 1

@@ -3,7 +3,7 @@ mod multi_mt;
 
 use crate::multi_mt::MultiMT19937;
 use multiversion::multiversion;
-use rayon::prelude::*;
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use smallvec::SmallVec;
 use std::simd::{u32x8, Simd, SimdPartialEq};
 
@@ -97,14 +97,15 @@ fn find_seed_simd(
 }
 
 pub fn find_seed(
-    seed_range: (Seed, Seed), // right-closed
+    seed_hi_range: (Seed, Seed), // right-closed
     ivs1: IVs,
     ivs2: IVs,
     frame_range1: (Frame, Frame), // right-closed
     frame_range2: (Frame, Frame), // right-closed
     notify_progress: impl Fn(&[Hit], u32) -> () + Sync,
 ) -> Vec<Hit> {
-    assert!(seed_range.0 <= seed_range.1);
+    let (seed_hi_min, seed_hi_max) = seed_hi_range;
+    assert!(seed_hi_min <= seed_hi_max && seed_hi_max <= 0xFFFF);
     assert!(
         ivs1.0 <= 31
             && ivs1.1 <= 31
@@ -131,9 +132,6 @@ pub fn find_seed(
     let ivs1 = encode_ivs(ivs1);
     let ivs2 = encode_ivs(ivs2);
 
-    let (seed_min, seed_max) = seed_range;
-    let seed_hi_min = seed_min >> 16;
-    let seed_hi_max = seed_max >> 16;
     let len = seed_hi_max - seed_hi_min + 1;
 
     (seed_hi_min..=seed_hi_max)
@@ -143,6 +141,5 @@ pub fn find_seed(
             notify_progress(&hits, len);
             hits
         })
-        .filter(|hit| seed_min <= hit.seed && hit.seed <= seed_max)
         .collect()
 }
