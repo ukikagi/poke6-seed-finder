@@ -73,11 +73,11 @@ fn main() -> io::Result<()> {
     };
 
     let hits = find_seed(
-        (0x0000, 0xFFFF),
+        (0x0000, 0x10000), // right-open
         (ivs1[0], ivs1[1], ivs1[2], ivs1[3], ivs1[4], ivs1[5]),
         (ivs2[0], ivs2[1], ivs2[2], ivs2[3], ivs2[4], ivs2[5]),
-        (frame1[0], frame1[1]),
-        (frame2[0], frame2[1]),
+        (frame1[0], frame1[1] + 1), // converts right-closed to open
+        (frame2[0], frame2[1] + 1), // same
         notify_progress,
     );
 
